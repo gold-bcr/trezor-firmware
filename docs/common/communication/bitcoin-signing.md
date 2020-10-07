@@ -290,16 +290,19 @@ transactions which have already been signed (the original transactions). Replace
 transactions can be used to securely bump the fee of an already signed transaction
 ([BIP-125](https://github.com/bitcoin/bips/blob/master/bip-0125.mediawiki)) or to
 participate as a sender in PayJoin
-([BIP-78](https://github.com/bitcoin/bips/blob/master/bip-0078.mediawiki)). When signing
-a replacement transaction the user only confirms the fee modification and the original
-TXIDs, they are not shown the outputs again.
+([BIP-78](https://github.com/bitcoin/bips/blob/master/bip-0078.mediawiki)). Trezor only
+supports signing of replacement transaction which do not increase the amount that the
+user is spending on external outputs. Thus when signing a replacement transaction the
+user only needs to confirm the fee modification and the original TXIDs without being
+shown any outputs, since the original external outputs must have already been confirmed
+by the user and any new external outputs can only be paid for by new external inputs.
 
 The host signals that a transaction is a replacement transaction by setting the
 `orig_hash` and `orig_index` fields for at least one `TxInput`. Trezor will then
 automatically request metadata about the original transaction and verify the original
 signatures.
 
-A replacement transaction must satisfy the following conditions:
+A replacement transaction in Trezor must satisfy the following requirements:
 
 * All inputs of the original transactions must be inputs of the replacement transation.
 * All _external_ outputs of the original transactions must be outputs of the replacement
@@ -313,7 +316,7 @@ A replacement transaction must satisfy the following conditions:
   from another original transaction.
 * New `OP_RETURN` outputs cannot be added in the replacement transaction.
 
-So the replacement transaction is for example allowed to:
+So the replacement transaction is, for example, allowed to:
 
 * Increase the user's contribution to the mining fee by adding new inputs or decreasing
   or removing change outputs.
