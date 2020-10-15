@@ -149,15 +149,17 @@ class OriginalTxInfo(TxInfoBase):
         signer.write_tx_header(self.h_tx, tx, witness_marker=False)
         writers.write_bitcoin_varint(self.h_tx, tx.inputs_count)
 
-        # The index of the input which will be used for verification.
+        # The input which will be used for verification and its index in the original transaction.
+        self.verification_input = None  # type: Optional[TxInput]
         self.verification_index = None  # type: Optional[int]
 
     def add_input(self, txi: TxInput) -> None:
         super().add_input(txi)
         self.signer.write_tx_input(self.h_tx, txi, txi.script_sig or bytes())
 
-        # For verification use the first input that specifies address_n.
-        if self.verification_index is None and txi.address_n:
+        # For verification use the first internal input.
+        if not self.verification_input and txi.address_n:
+            self.verification_input = txi
             self.verification_index = self.index
 
     def add_output(self, txo: TxOutput, script_pubkey: bytes) -> None:

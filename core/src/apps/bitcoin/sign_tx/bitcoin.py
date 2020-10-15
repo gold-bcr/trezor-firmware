@@ -328,14 +328,13 @@ class Bitcoin:
 
     async def verify_original_txs(self) -> None:
         for orig in self.orig_txs:
-            if orig.verification_index is None:
+            if orig.verification_input is None:
                 raise wire.ProcessError(
                     "Each original transaction must specify address_n for at least one input."
                 )
 
-            txi = await helpers.request_tx_input(
-                self.tx_req, orig.verification_index, self.coin, orig.orig_hash
-            )
+            assert orig.verification_index is not None
+            txi = orig.verification_input
 
             node = self.keychain.derive(txi.address_n)
             address = addresses.get_address(
