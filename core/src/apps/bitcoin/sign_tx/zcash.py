@@ -169,9 +169,6 @@ class Zcashlike(Bitcoinlike):
         if tx.version >= 3:
             write_uint32(w, tx.expiry)  # expiryHeight
 
-        assert self.tx_info.tx.version_group_id is not None
-        assert self.tx_info.tx.expiry is not None
-
 
 def derive_script_code(
     txi: TxInput, public_keys: List[bytes], threshold: int, coin: CoinInfo
