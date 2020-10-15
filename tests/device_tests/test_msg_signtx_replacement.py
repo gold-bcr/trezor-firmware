@@ -588,14 +588,12 @@ def test_attack_steal_change(client):
     )
 
     # Attacker hides the fact that second output of 65b768 is a change-output.
-    class AttackerTxCache:
-        def __getitem__(self, key):
-            tx = TX_CACHE_TESTNET[key]
-            if key == TXHASH_65b768:
-                tx.outputs[1].address_n = None
-                tx.outputs[1].address = "tb1qr5p6f5sk09sms57ket074vywfymuthlgud7xyx"
-                tx.outputs[1].script_type = messages.OutputScriptType.PAYTOADDRESS
-            return tx
+    prev_tx_attack = TX_CACHE_TESTNET[TXHASH_65b768]
+    prev_tx_attack.address = ...
+    prev_tx_attack.outputs[1].address_n = None
+    prev_tx_attack.outputs[1].address = "tb1qr5p6f5sk09sms57ket074vywfymuthlgud7xyx"
+    prev_tx_attack.outputs[1].script_type = messages.OutputScriptType.PAYTOADDRESS
+    prev_txes = {TXHASH_65b768: prev_tx_attack}
 
     with pytest.raises(
         TrezorFailure, match="Original output is missing change-output parameters"
@@ -606,5 +604,5 @@ def test_attack_steal_change(client):
             [inp1, inp2],
             [out1, out2, out3],
             lock_time=1516634,
-            prev_txes=AttackerTxCache(),
+            prev_txes=prev_txes,
         )
