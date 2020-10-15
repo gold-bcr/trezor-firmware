@@ -140,8 +140,10 @@ class BasicApprover(Approver):
             if fee > 10 * fee_threshold and safety_checks.is_strict():
                 raise wire.DataError("The fee is unexpectedly large")
             await helpers.confirm_feeoverthreshold(fee, self.coin)
+
         if self.change_count > self.MAX_SILENT_CHANGE_COUNT:
             await helpers.confirm_change_count_over_threshold(self.change_count)
+
         if orig_txs:
             # Replacement transaction.
             orig_spending = (
@@ -151,6 +153,9 @@ class BasicApprover(Approver):
 
             # Replacement transactions are only allowed to make amendments which
             # do not increase the amount that we are spending on external outputs.
+            # In other words, the total amount being sent out of the wallet must
+            # not increase by more than the fee difference (so additional funds
+            # can only go towards the fee, which is confirmed by the user).
             if spending - orig_spending > fee - orig_fee:
                 raise wire.ProcessError("Invalid replacement transaction.")
 

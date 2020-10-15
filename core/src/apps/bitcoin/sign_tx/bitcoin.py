@@ -135,10 +135,9 @@ class Bitcoin:
             # STAGE_REQUEST_2_OUTPUT in legacy
             txo = await helpers.request_tx_output(self.tx_req, i, self.coin)
             script_pubkey = self.output_derive_script(txo)
+            orig_txo = None  # type: Optional[TxOutput]
             if txo.orig_hash:
                 orig_txo = await self.get_original_output(txo, script_pubkey)
-            else:
-                orig_txo = None  # type: ignore
             await self.approve_output(txo, script_pubkey, orig_txo)
 
         # Finalize original outputs.
@@ -275,7 +274,6 @@ class Bitcoin:
                 raise wire.ProcessError(
                     "Removal of original external outputs is not supported."
                 )
-                self.approver.add_orig_external_output(txo)
 
             orig.index += 1
 
@@ -343,7 +341,7 @@ class Bitcoin:
             verifier = SignatureVerifier(
                 script_pubkey, txi.script_sig, txi.witness, self.coin
             )
-            verifier.ensure_hash_type(self.get_hash_type(txi))
+            verifier.ensure_hash_type(SIGHASH_ALL)
             tx_digest = await self.get_tx_digest(
                 orig.verification_index,
                 txi,
