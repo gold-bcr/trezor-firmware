@@ -589,7 +589,6 @@ def test_attack_steal_change(client):
 
     # Attacker hides the fact that second output of 65b768 is a change-output.
     prev_tx_attack = TX_CACHE_TESTNET[TXHASH_65b768]
-    prev_tx_attack.address = ...
     prev_tx_attack.outputs[1].address_n = None
     prev_tx_attack.outputs[1].address = "tb1qr5p6f5sk09sms57ket074vywfymuthlgud7xyx"
     prev_tx_attack.outputs[1].script_type = messages.OutputScriptType.PAYTOADDRESS
