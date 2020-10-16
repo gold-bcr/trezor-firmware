@@ -160,7 +160,7 @@ class OriginalTxInfo(TxInfoBase):
         super().add_input(txi)
         self.signer.write_tx_input(self.h_tx, txi, txi.script_sig or bytes())
 
-        # For verification use the first internal input.
+        # For verification use the first original input that specifies address_n.
         if not self.verification_input and txi.address_n:
             self.verification_input = txi
             self.verification_index = self.index

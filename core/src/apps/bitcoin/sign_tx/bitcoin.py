@@ -255,10 +255,16 @@ class Bitcoin:
             self.tx_req, txi.orig_index, self.coin, txi.orig_hash
         )
 
+        # Verify that the original input matches:
+        # An input is characterized by its prev_hash and prev_index. We also check that the
+        # amounts match, so that we don't have to call get_prevtx_output() twice for the same
+        # prevtx output. Verifying that script_type matches is just a sanity check, because
+        # because we count both inputs as internal or external based only on txi.script_type.
         if (
             orig_txi.prev_hash != txi.prev_hash
             or orig_txi.prev_index != txi.prev_index
             or orig_txi.amount != txi.amount
+            or orig_txi.script_type != txi.script_type
         ):
             raise wire.ProcessError("Original input does not match current input.")
 
