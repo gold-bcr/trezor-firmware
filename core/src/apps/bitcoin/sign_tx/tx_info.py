@@ -141,7 +141,10 @@ class OriginalTxInfo(TxInfoBase):
         self.signer = signer
         self.orig_hash = orig_hash
 
-        # The current index when iterating over inputs or outputs.
+        # Index of the next input or output to be added by add_input or add_output. Signer uses this
+        # value to check that original transaction inputs and outputs are streamed in order, and to
+        # check whether any have been skipped. Incrementing and resetting this variable is the
+        # responsibility of the signer class.
         self.index = 0
 
         # Transaction hasher to compute the TXID.
