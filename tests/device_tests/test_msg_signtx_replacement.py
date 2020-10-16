@@ -550,3 +550,184 @@ def test_attack_steal_change(client):
             lock_time=1516634,
             prev_txes=prev_txes,
         )
+
+
+@pytest.mark.skip_t1
+@pytest.mark.skip_ui
+def test_attack_false_internal(client):
+    # Falsely claim that an external input is internal in the original transaction.
+    # If this were possible, it would allow an attacker to make it look like the
+    # user was spending more in the original than they actually were, making it
+    # possible for the attacker to steal the difference.
+
+    inp1 = messages.TxInputType(
+        address_n=parse_path("49h/1h/0h/0/4"),
+        amount=100000,
+        script_type=messages.InputScriptType.SPENDP2SHWITNESS,
+        prev_hash=TXHASH_5e7667,
+        prev_index=1,
+        orig_hash=TXHASH_334cd7,
+        orig_index=0,
+    )
+
+    inp2 = messages.TxInputType(
+        # Actually 49h/1h/0h/0/3, but we will make it look like it's external,
+        # while in the original it will show up as intenal.
+        amount=998060,
+        script_type=messages.InputScriptType.EXTERNAL,
+        prev_hash=TXHASH_efaa41,
+        prev_index=0,
+        orig_hash=TXHASH_334cd7,
+        orig_index=1,
+        script_sig=bytes.fromhex("160014209297fb46272a0b7e05139440dbd39daea3e25a"),
+        witness=bytes.fromhex(
+            "024730440220709798e66e44ee76d8b0858407b2098f2f0046703761e2617b2b870a346cb56c022010242f602cd41485934834ecf12c1647d003df8c9d4c0d8637514e1dc8a657a2012103c2c2e65556ca4b7371549324b99390725493c8a6792e093a0bdcbb3e2d7df4ab"
+        ),
+    )
+
+    out1 = messages.TxOutputType(
+        # Actually m/49'/1'/0'/0/5.
+        address="2MvUUSiQZDSqyeSdofKX9KrSCio1nANPDTe",
+        amount=1000000 + 94280,
+        orig_hash=TXHASH_334cd7,
+        orig_index=0,
+    )
+
+    with pytest.raises(
+        TrezorFailure, match="Original input does not match current input"
+    ):
+        btc.sign_tx(
+            client,
+            "Testnet",
+            [inp1, inp2],
+            [out1],
+            prev_txes=TX_CACHE_TESTNET,
+        )
+
+
+@pytest.mark.skip_t1
+@pytest.mark.skip_ui
+def test_attack_fake_int_input_amount(client):
+    # Give a fake input amount for an original internal input while giving the correct
+    # amount for the replacement input. If an attacker could increase the amount of an
+    # internal input in the original transaction, then they could bump the fee of the
+    # transaction without the user noticing.
+
+    inp1 = messages.TxInputType(
+        address_n=parse_path("44h/0h/0h/0/4"),
+        amount=174998,
+        prev_hash=TXHASH_beafc7,
+        prev_index=0,
+        orig_hash=TXHASH_50f6f1,
+        orig_index=0,
+    )
+
+    out1 = messages.TxOutputType(
+        address_n=parse_path("44h/0h/0h/1/2"),
+        amount=174998
+        - 50000
+        - 111300,  # Original fee was 11300, attacker increases it by 100000.
+        script_type=messages.OutputScriptType.PAYTOADDRESS,
+        orig_hash=TXHASH_50f6f1,
+        orig_index=0,
+    )
+
+    out2 = messages.TxOutputType(
+        address="1GA9u9TfCG7SWmKCveBumdA1TZpfom6ZdJ",
+        amount=50000,
+        script_type=messages.OutputScriptType.PAYTOADDRESS,
+        orig_hash=TXHASH_50f6f1,
+        orig_index=1,
+    )
+
+    prev_tx_attack = TX_CACHE_MAINNET[TXHASH_50f6f1]
+    prev_tx_attack.inputs[
+        0
+    ].amount += 100000  # Increase the original input amount by 100000.
+    prev_txes = {
+        TXHASH_50f6f1: prev_tx_attack,
+        TXHASH_beafc7: TX_CACHE_MAINNET[TXHASH_beafc7],
+    }
+
+    with pytest.raises(
+        TrezorFailure, match="Original input does not match current input"
+    ):
+        btc.sign_tx(
+            client,
+            "Bitcoin",
+            [inp1],
+            [out1, out2],
+            prev_txes=prev_txes,
+        )
+
+
+@pytest.mark.skip_t1
+@pytest.mark.skip_ui
+def test_attack_fake_ext_input_amount(client):
+    # Give a fake input amount for an original external input while giving the correct
+    # amount for the replacement input. If an attacker could decrease the amount of an
+    # external input in the original transaction, then they could steal the fee from
+    # the transaction without the user noticing.
+
+    inp1 = messages.TxInputType(
+        address_n=parse_path("49h/1h/0h/0/8"),
+        amount=4973340,
+        script_type=messages.InputScriptType.SPENDP2SHWITNESS,
+        prev_hash=TXHASH_6673b7,
+        prev_index=0,
+        orig_hash=TXHASH_ed89ac,
+        orig_index=0,
+    )
+
+    inp2 = messages.TxInputType(
+        # Actually 49h/1h/0h/0/9, but we will make it look like it's external,
+        # so that we can try out this scenario, i.e. not a part of the attack.
+        amount=839318869,
+        script_type=messages.InputScriptType.EXTERNAL,
+        prev_hash=TXHASH_927784,
+        prev_index=0,
+        orig_hash=TXHASH_ed89ac,
+        orig_index=1,
+        script_sig=bytes.fromhex("160014681ea49259abb892460bf3373e8a0b43d877fa18"),
+        witness=bytes.fromhex(
+            "02483045022100d9c2d4364e104bf0d27886b4d7cd05f9a256bda8acbe84b7b2753f5c054b1a8602206a512575a89da5b5123e2769a5f73675b27b9f43d1a7b54bddeae039f6b83efa0121028cbc37e1816a23086fa738c8415def477e813e20f484dbbd6f5a33a37c322251"
+        ),
+    )
+
+    # Attacker adds 30000, but it could even go to a new output.
+    out1 = messages.TxOutputType(
+        address="moE1dVYvebvtaMuNdXQKvu4UxUftLmS1Gt",
+        amount=100000000 + 30000,
+        orig_hash=TXHASH_ed89ac,
+        orig_index=1,
+    )
+
+    # Change-output. Original fee was 90720, attacker steals 30000.
+    out2 = messages.TxOutputType(
+        address_n=parse_path("49h/1h/0h/1/6"),
+        amount=4973340 + 839318869 - (100000000 + 30000) - 60720,
+        script_type=messages.OutputScriptType.PAYTOP2SHWITNESS,
+    )
+
+    # Decrease the original amount of inp2 by 30000.
+    # Also make the original inp2 look external (not a part of the attack).
+    prev_tx_attack = TX_CACHE_TESTNET[TXHASH_ed89ac]
+    prev_tx_attack.inputs[1].amount -= 30000
+    prev_tx_attack.inputs[1].address_n = None
+    prev_tx_attack.inputs[1].script_type = messages.InputScriptType.EXTERNAL
+    prev_txes = {
+        TXHASH_ed89ac: prev_tx_attack,
+        TXHASH_6673b7: TX_CACHE_TESTNET[TXHASH_6673b7],
+        TXHASH_927784: TX_CACHE_TESTNET[TXHASH_927784],
+    }
+
+    with pytest.raises(
+        TrezorFailure, match="Original input does not match current input"
+    ):
+        btc.sign_tx(
+            client,
+            "Testnet",
+            [inp1, inp2],
+            [out1, out2],
+            prev_txes=prev_txes,
+        )
