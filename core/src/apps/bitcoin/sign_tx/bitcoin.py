@@ -92,6 +92,9 @@ class Bitcoin:
         self.tx_req.serialized.serialized_tx = self.serialized_tx
 
         # List of original transactions which are being replaced by the current transaction.
+        # Note: A List is better than a Dict of TXID -> OriginalTxInfo. Dict ordering is
+        # undefined so we would need to convert to a sorted list in several places to ensure
+        # stable device tests.
         self.orig_txs = []  # type: List[OriginalTxInfo]
 
         # h_inputs is a digest of the inputs streamed for approval in Step 1, which
